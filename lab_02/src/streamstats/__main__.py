@@ -29,27 +29,26 @@ def build_parser():
         description="Потоковый анализатор файлов логов.",
         epilog=(
             "примеры:\n"
-            "  python -m streamstats logs.jsonl --format jsonl\n"
-            "  python -m streamstats a.csv b.csv --format csv --output report.json\n"
-            "  python -m streamstats logs.jsonl --format jsonl --level ERROR"
+            "  python -m streamstats analyze logs.jsonl --format jsonl\n"
+            "  python -m streamstats analyze a.csv b.csv --format csv --output report.json\n"
+            "  python -m streamstats analyze logs.jsonl --format jsonl --level ERROR"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--format",required=True, help="формат входных файлов")
-    parser.add_argument("--output", default=None, metavar="ФАЙЛ", help="куда сохранить отчёт (по умолчанию в консоль)")
-    parser.add_argument("--report-format", default="json", help="формат отчёта")
-    parser.add_argument("--skip-invalid",action="store_true",help="пропускать битые строки с предупреждением, а не останавливаться",)
-    parser.add_argument("--level", action="append",help="учитывать только этот уровень (можно повторять)")
-    parser.add_argument("--source", action="append", help="учитывать только этот источник (можно повторять)")
-    parser.add_argument("--since", metavar="ВРЕМЯ", help="не раньше (ISO 8601, включительно)")
-    parser.add_argument("--until", metavar="ВРЕМЯ", help="не позже (ISO 8601, включительно)")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    analyze_parser = subparsers.add_parser("analyze", help="проанализировать файлы логов")
+    analyze_parser.add_argument("inputs", nargs="+", metavar="INPUT", help="входные файлы логов")
+    analyze_parser.add_argument("--format", required=True, choices=available_formats(), help="формат входных файлов")
+    analyze_parser.add_argument("--output", default=None, metavar="ФАЙЛ", help="куда сохранить отчёт (по умолчанию в консоль)")
+    analyze_parser.add_argument("--report-format", default="json", choices=list(RENDERERS.keys()), help="формат отчёта")
+    analyze_parser.add_argument("--skip-invalid", action="store_true", help="пропускать битые строки с предупреждением")
+    analyze_parser.add_argument("--level", action="append", choices=sorted(ALLOWED_LEVELS), help="учитывать только этот уровень")
+    analyze_parser.add_argument("--source", action="append", help="учитывать только этот источник")
+    analyze_parser.add_argument("--since", metavar="ВРЕМЯ", help="не раньше (ISO 8601, включительно)")
+    analyze_parser.add_argument("--until", metavar="ВРЕМЯ", help="не позже (ISO 8601, включительно)")
 
     return parser
-
-if __name__ == "__main__":
-    parser = build_parser()
-    args = parser.parse_args()
-    print(args)
 
 
 def parse_bound(text, option):
@@ -65,7 +64,6 @@ def main(args_list=None):
     logger = setup_logger()
     parser = build_parser()
     args = parser.parse_args(args_list)
-
 
     try:
         since = parse_bound(args.since, "--since")
